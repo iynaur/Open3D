@@ -95,7 +95,7 @@ PointCloud &PointCloud::Scale(const double scale, bool center) {
     if (center && !points_.empty()) {
         point_center =
                 std::accumulate(points_.begin(), points_.end(), point_center);
-        point_center /= points_.size();
+        point_center /= double(points_.size());
     }
     for (auto &point : points_) {
         point = (point - point_center) * scale + point_center;
@@ -110,7 +110,7 @@ PointCloud &PointCloud::Rotate(const Eigen::Vector3d &rotation,
     if (center && !points_.empty()) {
         point_center =
                 std::accumulate(points_.begin(), points_.end(), point_center);
-        point_center /= points_.size();
+        point_center /= double(points_.size());
     }
     const Eigen::Matrix3d R = GetRotationMatrix(rotation, type);
     for (auto &point : points_) {
@@ -165,7 +165,7 @@ std::vector<double> PointCloud::ComputePointCloudDistance(
         std::vector<int> indices(1);
         std::vector<double> dists(1);
         if (kdtree.SearchKNN(points_[i], 1, indices, dists) == 0) {
-            utility::PrintDebug(
+            utility::LogDebug(
                     "[ComputePointCloudToPointCloudDistance] Found a point "
                     "without neighbors.\n");
             distances[i] = 0.0;
@@ -199,8 +199,9 @@ PointCloud &PointCloud::RemoveNoneFinitePoints(bool remove_nan,
     points_.resize(k);
     if (has_normal) normals_.resize(k);
     if (has_color) colors_.resize(k);
-    utility::PrintDebug("[Purge] %d nan points have been removed.\n",
-                        (int)(old_point_num - k));
+    utility::LogDebug(
+            "[RemoveNoneFinitePoints] {:d} nan points have been removed.\n",
+            (int)(old_point_num - k));
     return *this;
 }
 
@@ -267,7 +268,7 @@ std::vector<double> PointCloud::ComputeNearestNeighborDistance() const {
         std::vector<int> indices(2);
         std::vector<double> dists(2);
         if (kdtree.SearchKNN(points_[i], 2, indices, dists) <= 1) {
-            utility::PrintDebug(
+            utility::LogDebug(
                     "[ComputePointCloudNearestNeighborDistance] Found a point "
                     "without neighbors.\n");
             nn_dis[i] = 0.0;

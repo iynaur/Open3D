@@ -35,8 +35,6 @@ namespace open3d {
 namespace {
 using namespace geometry;
 
-double sqr(double x) { return x * x; }
-
 Eigen::Vector3d ComputeEigenvector0(const Eigen::Matrix3d &A, double eval0) {
     Eigen::Vector3d row0(A(0, 0) - eval0, A(0, 1), A(0, 2));
     Eigen::Vector3d row1(A(0, 1), A(1, 1) - eval0, A(1, 2));
@@ -305,7 +303,7 @@ bool PointCloud::OrientNormalsToAlignWithDirection(
         const Eigen::Vector3d &orientation_reference
         /* = Eigen::Vector3d(0.0, 0.0, 1.0)*/) {
     if (HasNormals() == false) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[OrientNormalsToAlignWithDirection] No normals in the "
                 "PointCloud. Call EstimateNormals() first.\n");
     }
@@ -326,7 +324,7 @@ bool PointCloud::OrientNormalsToAlignWithDirection(
 bool PointCloud::OrientNormalsTowardsCameraLocation(
         const Eigen::Vector3d &camera_location /* = Eigen::Vector3d::Zero()*/) {
     if (HasNormals() == false) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[OrientNormalsTowardsCameraLocation] No normals in the "
                 "PointCloud. Call EstimateNormals() first.\n");
     }

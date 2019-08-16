@@ -49,8 +49,7 @@ std::shared_ptr<OctreeNode> OctreeNode::ConstructFromJsonValue(
         } else if (class_name == "OctreeColorLeafNode") {
             node = std::make_shared<OctreeColorLeafNode>();
         } else {
-            utility::PrintWarning("Unhandled class name %s\n",
-                                  class_name.c_str());
+            utility::LogWarning("Unhandled class name {}\n", class_name);
         }
     }
     // Convert from json
@@ -104,15 +103,15 @@ bool OctreeInternalNode::ConvertToJsonValue(Json::Value& value) const {
 
 bool OctreeInternalNode::ConvertFromJsonValue(const Json::Value& value) {
     if (value.isObject() == false) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "ConvertFromJsonValue read JSON failed: unsupported json "
                 "format.\n");
         return false;
     }
     std::string class_name = value.get("class_name", "").asString();
     if (class_name != "OctreeInternalNode") {
-        utility::PrintWarning("class_name %s != OctreeInternalNode\n",
-                              class_name.c_str());
+        utility::LogWarning("class_name {} != OctreeInternalNode\n",
+                            class_name);
         return false;
     }
     bool rc = true;
@@ -157,7 +156,7 @@ bool OctreeColorLeafNode::operator==(const OctreeLeafNode& that) const {
         const OctreeColorLeafNode& that_color_node =
                 dynamic_cast<const OctreeColorLeafNode&>(that);
         return this->color_.isApprox(that_color_node.color_);
-    } catch (const std::exception& ex) {
+    } catch (const std::exception&) {
         return false;
     }
 }
@@ -169,7 +168,7 @@ bool OctreeColorLeafNode::ConvertToJsonValue(Json::Value& value) const {
 
 bool OctreeColorLeafNode::ConvertFromJsonValue(const Json::Value& value) {
     if (value.isObject() == false) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "OctreeColorLeafNode read JSON failed: unsupported json "
                 "format.\n");
         return false;
@@ -182,9 +181,9 @@ bool OctreeColorLeafNode::ConvertFromJsonValue(const Json::Value& value) {
 
 Octree::Octree(const Octree& src_octree)
     : Geometry3D(Geometry::GeometryType::Octree),
-      max_depth_(src_octree.max_depth_),
       origin_(src_octree.origin_),
-      size_(src_octree.size_) {
+      size_(src_octree.size_),
+      max_depth_(src_octree.max_depth_) {
     // First traversal: clone nodes without edges
     std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<OctreeNode>>
             map_src_to_dst_node;
@@ -512,8 +511,10 @@ void Octree::TraverseRecurse(
 
             auto child_node = internal_node->children_[child_index];
             Eigen::Vector3d child_node_origin =
-                    node_info->origin_ +
-                    Eigen::Vector3d(x_index, y_index, z_index) * child_size;
+                    node_info->origin_ + Eigen::Vector3d(double(x_index),
+                                                         double(y_index),
+                                                         double(z_index)) *
+                                                 child_size;
             auto child_node_info = std::make_shared<OctreeNodeInfo>(
                     child_node_origin, child_size, node_info->depth_ + 1,
                     child_index);
@@ -553,7 +554,7 @@ Octree::LocateLeafNode(const Eigen::Vector3d& point) const {
 
 std::shared_ptr<geometry::VoxelGrid> Octree::ToVoxelGrid() const {
     auto voxel_grid = std::make_shared<geometry::VoxelGrid>();
-    voxel_grid->FromOctree(*this);
+    voxel_grid->CreateFromOctree(*this);
     return voxel_grid;
 }
 
@@ -573,7 +574,7 @@ bool Octree::ConvertToJsonValue(Json::Value& value) const {
 
 bool Octree::ConvertFromJsonValue(const Json::Value& value) {
     if (value.isObject() == false) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "Octree read JSON failed: unsupported json format.\n");
         return false;
     }
@@ -592,7 +593,7 @@ bool Octree::ConvertFromJsonValue(const Json::Value& value) {
     return rc;
 }
 
-void Octree::FromVoxelGrid(const geometry::VoxelGrid& voxel_grid) {
+void Octree::CreateFromVoxelGrid(const geometry::VoxelGrid& voxel_grid) {
     origin_ = voxel_grid.origin_;
     size_ = (voxel_grid.GetMaxBound() - origin_).maxCoeff();
     double half_voxel_size = voxel_grid.voxel_size_ / 2.;

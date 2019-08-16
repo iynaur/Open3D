@@ -668,7 +668,6 @@ bool SimpleShaderForOctreeLine::PrepareBinding(
         PrintShaderWarning("Binding failed with empty octree.");
         return false;
     }
-    const ColorMap &global_color_map = *GetGlobalColorMap();
     points.clear();  // Final size: num_voxels * 36
     colors.clear();  // Final size: num_voxels * 36
 
@@ -676,7 +675,6 @@ bool SimpleShaderForOctreeLine::PrepareBinding(
                      const std::shared_ptr<geometry::OctreeNode> &node,
                      const std::shared_ptr<geometry::OctreeNodeInfo> &node_info)
             -> void {
-
         Eigen::Vector3f base_vertex = node_info->origin_.cast<float>();
         std::vector<Eigen::Vector3f> vertices;
         for (const Eigen::Vector3i &vertex_offset : cuboid_vertex_offsets) {

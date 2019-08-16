@@ -45,6 +45,7 @@ namespace geometry {
 class Image;
 class RGBDImage;
 class TriangleMesh;
+class VoxelGrid;
 
 class PointCloud : public Geometry3D {
 public:
@@ -189,7 +190,7 @@ public:
     /// in Large Spatial Databases with Noise", 1996
     /// Returns a vector of point labels, -1 indicates noise according to
     /// the algorithm.
-    std::vector<int> ClusterDBSCAN(double eps, int min_points) const;
+    std::vector<int> ClusterDBSCAN(double eps, size_t min_points) const;
 
     /// Factory function to create a pointcloud from a depth image and a camera
     /// model (PointCloudFactory.cpp)
@@ -213,6 +214,12 @@ public:
             const RGBDImage &image,
             const camera::PinholeCameraIntrinsic &intrinsic,
             const Eigen::Matrix4d &extrinsic = Eigen::Matrix4d::Identity());
+
+    /// Function to create a PointCloud from a VoxelGrid.
+    /// It transforms the voxel centers to 3D points using the original point
+    /// cloud coordinate (with respect to the center of the voxel grid).
+    std::shared_ptr<PointCloud> CreateFromVoxelGrid(
+            const VoxelGrid &voxel_grid);
 
 public:
     std::vector<Eigen::Vector3d> points_;

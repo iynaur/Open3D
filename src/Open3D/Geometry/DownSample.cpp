@@ -102,11 +102,11 @@ public:
         }
         if (cloud.HasColors()) {
             if (approximate_class) {
-                auto got = classes.find(cloud.colors_[index][0]);
+                auto got = classes.find(int(cloud.colors_[index][0]));
                 if (got == classes.end())
-                    classes[cloud.colors_[index][0]] = 1;
+                    classes[int(cloud.colors_[index][0])] = 1;
                 else
-                    classes[cloud.colors_[index][0]] += 1;
+                    classes[int(cloud.colors_[index][0])] += 1;
             } else {
                 color_ += cloud.colors_[index];
             }
@@ -159,8 +159,8 @@ std::shared_ptr<PointCloud> PointCloud::SelectDownSample(
             if (has_colors) output->colors_.push_back(colors_[i]);
         }
     }
-    utility::PrintDebug(
-            "Pointcloud down sampled from %d points to %d points.\n",
+    utility::LogDebug(
+            "Pointcloud down sampled from {:d} points to {:d} points.\n",
             (int)points_.size(), (int)output->points_.size());
     return output;
 }
@@ -203,8 +203,11 @@ std::shared_ptr<TriangleMesh> TriangleMesh::SelectDownSample(
     }
     // Rename vertex id based on selected points
     std::vector<int> new_vertex_id(vertices_.size());
-    for (auto i = 0, cnt = 0; i < mask_observed_vertex.size(); i++) {
-        if (mask_observed_vertex[i]) new_vertex_id[i] = cnt++;
+    for (size_t i = 0, cnt = 0; i < mask_observed_vertex.size(); i++) {
+        if (mask_observed_vertex[i]) {
+            new_vertex_id[i] = int(cnt);
+            cnt++;
+        }
     }
     // Push a triangle that has 3 selected vertices.
     triangle_id = 0;
@@ -221,7 +224,7 @@ std::shared_ptr<TriangleMesh> TriangleMesh::SelectDownSample(
         triangle_id++;
     }
     // Push marked vertex.
-    for (auto i = 0; i < mask_observed_vertex.size(); i++) {
+    for (size_t i = 0; i < mask_observed_vertex.size(); i++) {
         if (mask_observed_vertex[i]) {
             output->vertices_.push_back(vertices_[i]);
             if (has_vertex_normals)
@@ -234,9 +237,10 @@ std::shared_ptr<TriangleMesh> TriangleMesh::SelectDownSample(
     output->RemoveDuplicatedTriangles();
     output->RemoveUnreferencedVertices();
     output->RemoveDegenerateTriangles();
-    utility::PrintDebug(
-            "Triangle mesh sampled from %d vertices and %d triangles to %d "
-            "vertices and %d triangles.\n",
+    utility::LogDebug(
+            "Triangle mesh sampled from {:d} vertices and {:d} triangles to "
+            "{:d} "
+            "vertices and {:d} triangles.\n",
             (int)vertices_.size(), (int)triangles_.size(),
             (int)output->vertices_.size(), (int)output->triangles_.size());
     return output;
@@ -246,7 +250,7 @@ std::shared_ptr<PointCloud> PointCloud::VoxelDownSample(
         double voxel_size) const {
     auto output = std::make_shared<PointCloud>();
     if (voxel_size <= 0.0) {
-        utility::PrintDebug("[VoxelDownSample] voxel_size <= 0.\n");
+        utility::LogWarning("[VoxelDownSample] voxel_size <= 0.\n");
         return output;
     }
     Eigen::Vector3d voxel_size3 =
@@ -255,7 +259,7 @@ std::shared_ptr<PointCloud> PointCloud::VoxelDownSample(
     Eigen::Vector3d voxel_max_bound = GetMaxBound() + voxel_size3 * 0.5;
     if (voxel_size * std::numeric_limits<int>::max() <
         (voxel_max_bound - voxel_min_bound).maxCoeff()) {
-        utility::PrintDebug("[VoxelDownSample] voxel_size is too small.\n");
+        utility::LogWarning("[VoxelDownSample] voxel_size is too small.\n");
         return output;
     }
     std::unordered_map<Eigen::Vector3i, AccumulatedPoint,
@@ -281,8 +285,8 @@ std::shared_ptr<PointCloud> PointCloud::VoxelDownSample(
             output->colors_.push_back(accpoint.second.GetAverageColor());
         }
     }
-    utility::PrintDebug(
-            "Pointcloud down sampled from %d points to %d points.\n",
+    utility::LogDebug(
+            "Pointcloud down sampled from {:d} points to {:d} points.\n",
             (int)points_.size(), (int)output->points_.size());
     return output;
 }
@@ -295,7 +299,7 @@ PointCloud::VoxelDownSampleAndTrace(double voxel_size,
     auto output = std::make_shared<PointCloud>();
     Eigen::MatrixXi cubic_id;
     if (voxel_size <= 0.0) {
-        utility::PrintDebug("[VoxelDownSample] voxel_size <= 0.\n");
+        utility::LogWarning("[VoxelDownSample] voxel_size <= 0.\n");
         return std::make_tuple(output, cubic_id);
     }
     // Note: this is different from VoxelDownSample.
@@ -304,7 +308,7 @@ PointCloud::VoxelDownSampleAndTrace(double voxel_size,
     auto voxel_max_bound = max_bound;
     if (voxel_size * std::numeric_limits<int>::max() <
         (voxel_max_bound - voxel_min_bound).maxCoeff()) {
-        utility::PrintDebug("[VoxelDownSample] voxel_size is too small.\n");
+        utility::LogWarning("[VoxelDownSample] voxel_size is too small.\n");
         return std::make_tuple(output, cubic_id);
     }
     std::unordered_map<Eigen::Vector3i, AccumulatedPointForTrace,
@@ -346,12 +350,12 @@ PointCloud::VoxelDownSampleAndTrace(double voxel_size,
         for (int i = 0; i < (int)original_id.size(); i++) {
             size_t pid = original_id[i].point_id;
             int cid = original_id[i].cubic_id;
-            cubic_id(cnt, cid) = pid;
+            cubic_id(cnt, cid) = int(pid);
         }
         cnt++;
     }
-    utility::PrintDebug(
-            "Pointcloud down sampled from %d points to %d points.\n",
+    utility::LogDebug(
+            "Pointcloud down sampled from {:d} points to {:d} points.\n",
             (int)points_.size(), (int)output->points_.size());
     return std::make_tuple(output, cubic_id);
 }
@@ -359,7 +363,7 @@ PointCloud::VoxelDownSampleAndTrace(double voxel_size,
 std::shared_ptr<PointCloud> PointCloud::UniformDownSample(
         size_t every_k_points) const {
     if (every_k_points == 0) {
-        utility::PrintDebug("[UniformDownSample] Illegal sample rate.\n");
+        utility::LogWarning("[UniformDownSample] Illegal sample rate.\n");
         return std::make_shared<PointCloud>();
     }
     std::vector<size_t> indices;
@@ -374,7 +378,7 @@ std::shared_ptr<PointCloud> PointCloud::Crop(
         const Eigen::Vector3d &max_bound) const {
     if (min_bound(0) > max_bound(0) || min_bound(1) > max_bound(1) ||
         min_bound(2) > max_bound(2)) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[CropPointCloud] Illegal boundary clipped all points.\n");
         return std::make_shared<PointCloud>();
     }
@@ -393,7 +397,7 @@ std::shared_ptr<PointCloud> PointCloud::Crop(
 std::tuple<std::shared_ptr<PointCloud>, std::vector<size_t>>
 PointCloud::RemoveRadiusOutliers(size_t nb_points, double search_radius) const {
     if (nb_points < 1 || search_radius <= 0) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[RemoveRadiusOutliers] Illegal input parameters,"
                 "number of points and radius must be positive\n");
         return std::make_tuple(std::make_shared<PointCloud>(),
@@ -405,11 +409,11 @@ PointCloud::RemoveRadiusOutliers(size_t nb_points, double search_radius) const {
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static)
 #endif
-    for (auto i = 0; i < points_.size(); i++) {
+    for (int i = 0; i < int(points_.size()); i++) {
         std::vector<int> tmp_indices;
         std::vector<double> dist;
-        int nb_neighbors = kdtree.SearchRadius(points_[i], search_radius,
-                                               tmp_indices, dist);
+        size_t nb_neighbors = kdtree.SearchRadius(points_[i], search_radius,
+                                                  tmp_indices, dist);
         mask[i] = (nb_neighbors > nb_points);
     }
     std::vector<size_t> indices;
@@ -425,7 +429,7 @@ std::tuple<std::shared_ptr<PointCloud>, std::vector<size_t>>
 PointCloud::RemoveStatisticalOutliers(size_t nb_neighbors,
                                       double std_ratio) const {
     if (nb_neighbors < 1 || std_ratio <= 0) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[RemoveStatisticalOutliers] Illegal input parameters, number "
                 "of neighbors"
                 "and standard deviation ratio must be positive\n");
@@ -444,12 +448,12 @@ PointCloud::RemoveStatisticalOutliers(size_t nb_neighbors,
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static)
 #endif
-    for (auto i = 0; i < points_.size(); i++) {
+    for (int i = 0; i < int(points_.size()); i++) {
         std::vector<int> tmp_indices;
         std::vector<double> dist;
-        kdtree.SearchKNN(points_[i], nb_neighbors, tmp_indices, dist);
-        double mean = -1;
-        if (dist.size() > 0) {
+        kdtree.SearchKNN(points_[i], int(nb_neighbors), tmp_indices, dist);
+        double mean = -1.0;
+        if (dist.size() > 0u) {
             valid_distances++;
             mean = std::accumulate(dist.begin(), dist.end(), 0.0) / dist.size();
         }
@@ -485,7 +489,7 @@ std::shared_ptr<TriangleMesh> TriangleMesh::Crop(
         const Eigen::Vector3d &max_bound) const {
     if (min_bound(0) > max_bound(0) || min_bound(1) > max_bound(1) ||
         min_bound(2) > max_bound(2)) {
-        utility::PrintDebug(
+        utility::LogWarning(
                 "[CropTriangleMesh] Illegal boundary clipped all points.\n");
         return std::make_shared<TriangleMesh>();
     }

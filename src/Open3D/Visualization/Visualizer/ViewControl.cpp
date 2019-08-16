@@ -26,6 +26,12 @@
 
 #include "Open3D/Visualization/Visualizer/ViewControl.h"
 
+// Avoid warning caused by redefinition of APIENTRY macro
+// defined also in glfw3.h
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <GLFW/glfw3.h>
 #include <Eigen/Dense>
 #include <cmath>  // jspark
@@ -49,7 +55,7 @@ void ViewControl::SetViewMatrices(
         const Eigen::Matrix4d
                 &model_matrix /* = Eigen::Matrix4d::Identity()*/) {
     if (window_height_ <= 0 || window_width_ <= 0) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "[ViewControl] SetViewPoint() failed because window height and "
                 "width are not set.");
         return;
@@ -57,8 +63,7 @@ void ViewControl::SetViewMatrices(
     glViewport(0, 0, window_width_, window_height_);
     if (GetProjectionType() == ProjectionType::Perspective) {
         // Perspective projection
-        z_near_ = std::max(0.01 * bounding_box_.GetSize(),
-                           distance_ - 3.0 * bounding_box_.GetSize());
+        z_near_ = std::max(1e-6, distance_ - 3.0 * bounding_box_.GetSize());
         z_far_ = distance_ + 3.0 * bounding_box_.GetSize();
         projection_matrix_ =
                 GLHelper::Perspective(field_of_view_, aspect_, z_near_, z_far_);
@@ -109,13 +114,13 @@ bool ViewControl::ConvertFromViewParameters(const ViewParameters &status) {
 bool ViewControl::ConvertToPinholeCameraParameters(
         camera::PinholeCameraParameters &parameters) {
     if (window_height_ <= 0 || window_width_ <= 0) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "[ViewControl] ConvertToPinholeCameraParameters() failed "
                 "because window height and width are not set.\n");
         return false;
     }
     if (GetProjectionType() == ProjectionType::Orthogonal) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "[ViewControl] ConvertToPinholeCameraParameters() failed "
                 "because orthogonal view cannot be translated to a pinhole "
                 "camera.\n");
@@ -160,7 +165,7 @@ bool ViewControl::ConvertFromPinholeCameraParameters(
                 (double)window_width_ / 2.0 - 0.5 ||
         intrinsic.intrinsic_matrix_(1, 2) !=
                 (double)window_height_ / 2.0 - 0.5) {
-        utility::PrintWarning(
+        utility::LogWarning(
                 "[ViewControl] ConvertFromPinholeCameraParameters() failed "
                 "because window height and width do not match.\n");
         return false;
@@ -174,7 +179,7 @@ bool ViewControl::ConvertFromPinholeCameraParameters(
                      FIELD_OF_VIEW_MIN);
     if (GetProjectionType() == ProjectionType::Orthogonal) {
         field_of_view_ = old_fov;
-        utility::PrintWarning(
+        utility::LogWarning(
                 "[ViewControl] ConvertFromPinholeCameraParameters() failed "
                 "because field of view is impossible.\n");
         return false;
